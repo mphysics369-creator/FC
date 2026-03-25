@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>허브플러스 이관DB TA스크립트</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap');
+:root{
+  --P:#163569;--Pm:#1e4a96;--Pl:#2a5298;--Ps:#e8eef8;
+  --A:#c48a20;--Al:#fdf3e0;
+  --G:#1a7a4a;--Gl:#e6f4ec;
+  --R:#bf3427;--Rl:#fcecea;
+  --W:#b06a0a;--Wl:#fef5e4;
+  --bg:#eef2f7;--surf:#fff;--s2:#f4f7fb;--bdr:#dce3ef;
+  --t:#18253d;--t2:#3a4f72;--t3:#8090b0;
+  --HH:54px;--LW:200px;--RW:256px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Noto Sans KR',sans-serif;color:var(--t);background:var(--bg);font-size:14px;-webkit-text-size-adjust:100%;}
+button{font-family:'Noto Sans KR',sans-serif;border:none;background:none;padding:0;margin:0;-webkit-appearance:none;appearance:none;}
+
+/* HEADER */
+#hdr{position:fixed;top:0;left:0;right:0;height:var(--HH);background:var(--P);display:flex;align-items:center;padding:0 14px;gap:10px;z-index:200;box-shadow:0 2px 10px rgba(22,53,105,.25);}
+.h-logo{width:32px;height:32px;background:var(--A);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#fff;flex-shrink:0;}
+.h-info{flex:1;min-width:0;}
+.h-title{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.h-sub{font-size:10px;color:rgba(255,255,255,.5);}
+.h-right{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.h-chip{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:5px 10px;font-size:11px;color:rgba(255,255,255,.85);white-space:nowrap;cursor:pointer;}
+.h-chip.type{background:var(--A);border-color:var(--A);}
+#hReset{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.75);font-size:16px;cursor:pointer;}
+
+/* SHELL */
+#shell{position:fixed;top:var(--HH);left:0;right:0;bottom:0;display:flex;overflow:hidden;}
+
+/* LEFT NAV */
+#lnav{width:var(--LW);flex-shrink:0;background:var(--surf);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;}
+#lnavScroll{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
+.lsec{border-bottom:1px solid var(--bdr);padding:5px 0;}
+.lsec-lbl{font-size:9.5px;font-weight:700;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;padding:8px 12px 3px;}
+.lbtn{display:flex;align-items:center;gap:8px;width:100%;padding:11px 12px;font-size:13px;color:var(--t2);background:var(--surf);border-left:3px solid transparent;min-height:44px;line-height:1.3;text-align:left;cursor:pointer;}
+.lbtn.on{background:var(--Ps);color:var(--P);font-weight:700;border-left-color:var(--P);}
+.lbtn.rj{color:var(--R);}
+.lbtn.rj.on{background:var(--Rl);border-left-color:var(--R);}
+.lbtn-ic{width:26px;height:26px;border-radius:6px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;color:var(--t3);}
+.lbtn.on .lbtn-ic{background:var(--P);color:#fff;}
+.lbtn.rj.on .lbtn-ic{background:var(--Rl);color:var(--R);}
+.ckbtn{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;font-size:12.5px;color:var(--t2);background:var(--surf);min-height:40px;text-align:left;cursor:pointer;}
+.ckbtn.on{color:var(--G);}
+.ck-box{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--bdr);background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;flex-shrink:0;}
+.ckbtn.on .ck-box{background:var(--G);border-color:var(--G);color:#fff;}
+
+/* CENTER */
+#center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+#cscroll{flex:1;overflow-y:scroll;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:14px 12px 24px;}
+
+/* RIGHT PANEL */
+#rpanel{width:var(--RW);flex-shrink:0;background:var(--surf);border-left:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;}
+.rp-hdr{background:var(--P);padding:10px 12px;display:flex;align-items:center;gap:7px;flex-shrink:0;}
+.rp-ic{width:26px;height:26px;border-radius:6px;background:var(--A);display:flex;align-items:center;justify-content:center;font-size:13px;}
+.rp-title{font-size:13px;font-weight:700;color:#fff;flex:1;}
+#rpScroll{flex:1;overflow-y:scroll;-webkit-overflow-scrolling:touch;}
+.rjbtn{display:flex;align-items:center;gap:8px;width:100%;padding:12px;font-size:12.5px;color:var(--t2);background:#fff;border-bottom:1px solid var(--bdr);min-height:46px;text-align:left;cursor:pointer;}
+.rjbtn.on{background:var(--Rl);color:var(--R);font-weight:700;}
+.rjbtn-ic{width:24px;height:24px;border-radius:5px;background:var(--Rl);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;color:var(--R);}
+.rjbtn.on .rjbtn-ic{background:var(--R);color:#fff;}
+.rpane{padding:10px 12px 4px;border-bottom:2px solid var(--bdr);background:var(--s2);}
+.rs{background:#fff;border:1px solid var(--bdr);border-left:3px solid var(--R);border-radius:0 6px 6px 0;padding:9px 10px;margin-bottom:7px;font-size:12.5px;line-height:1.8;color:var(--t);}
+.rs.fo{border-left-color:var(--P);background:var(--Ps);}
+.rs.la{border-left-color:var(--W);background:var(--Wl);}
+.rs-l{font-size:9.5px;font-weight:800;letter-spacing:.7px;margin-bottom:4px;opacity:.55;}
+
+/* SETUP */
+.setup-wrap{max-width:480px;margin:0 auto;}
+.setup-hero{background:linear-gradient(135deg,var(--P),var(--Pl));border-radius:12px;padding:20px;margin-bottom:14px;color:#fff;text-align:center;}
+.setup-hero h1{font-size:16px;font-weight:800;margin-bottom:4px;}
+.setup-hero p{font-size:11.5px;opacity:.7;}
+.scard{background:var(--surf);border-radius:12px;border:1px solid var(--bdr);padding:16px;margin-bottom:12px;box-shadow:0 1px 8px rgba(22,53,105,.07);}
+.scard-title{font-size:12.5px;font-weight:700;color:var(--P);margin-bottom:12px;}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.f{display:flex;flex-direction:column;gap:4px;}
+.f label{font-size:11px;font-weight:700;color:var(--t3);}
+.f input{height:44px;border:1.5px solid var(--bdr);border-radius:7px;padding:0 11px;font-family:inherit;font-size:14px;color:var(--t);background:var(--s2);outline:none;-webkit-appearance:none;}
+.f input:focus{border-color:var(--P);background:#fff;}
+.f.full{grid-column:1/-1;}
+.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;}
+.tcbtn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px;border-radius:8px;border:1.5px solid var(--bdr);background:var(--s2);width:100%;cursor:pointer;}
+.tcbtn.on{border-color:var(--P);background:var(--Ps);}
+.tc-e{font-size:20px;}
+.tc-l{font-size:10px;font-weight:700;color:var(--t2);text-align:center;line-height:1.3;}
+.tcbtn.on .tc-l{color:var(--P);}
+.btn-start{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:52px;border-radius:12px;background:var(--P);color:#fff;font-family:'Noto Sans KR',sans-serif;font-size:16px;font-weight:700;cursor:pointer;}
+
+/* SCRIPT */
+.sb{border-left:3px solid var(--P);background:#f5f8fd;border-radius:0 7px 7px 0;padding:12px 13px;margin-bottom:10px;font-size:14.5px;line-height:1.95;color:var(--t);}
+.sb.go{border-left-color:var(--A);background:var(--Al);}
+.sb.gr{border-left-color:var(--G);background:var(--Gl);}
+.sb.wa{border-left-color:var(--W);background:var(--Wl);}
+.sb-l{font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;opacity:.6;margin-bottom:6px;}
+.hl{background:rgba(22,53,105,.1);border-radius:3px;padding:1px 4px;font-weight:700;}
+.vr{background:var(--Al);color:var(--A);border:1px solid rgba(196,138,32,.3);border-radius:3px;padding:1px 5px;font-weight:800;font-size:13.5px;}
+.branch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px;}
+.bry,.brn{border-radius:7px;padding:10px 11px;font-size:13px;line-height:1.7;}
+.bry{background:var(--Gl);border:1px solid rgba(26,122,74,.2);}
+.brn{background:var(--Rl);border:1px solid rgba(191,52,39,.2);}
+.br-l{font-size:9.5px;font-weight:800;letter-spacing:.8px;margin-bottom:4px;}
+.bry .br-l{color:var(--G);}.brn .br-l{color:var(--R);}
+.trow{display:flex;align-items:flex-start;gap:6px;padding:5px 0;border-bottom:1px dashed var(--bdr);font-size:13px;color:var(--t2);line-height:1.55;}
+.trow:last-child{border-bottom:none;padding-bottom:0;}
+.no-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:6px;}
+.no-item{background:var(--Rl);border:1px solid rgba(191,52,39,.14);border-radius:6px;padding:7px 9px;font-size:12px;color:var(--R);display:flex;align-items:center;gap:4px;}
+.no-item::before{content:'✕';font-weight:900;font-size:10px;flex-shrink:0;}
+.pt-badge{display:inline-flex;align-items:center;gap:4px;background:var(--P);color:#fff;border-radius:20px;padding:3px 9px;font-size:10.5px;font-weight:700;margin-bottom:8px;}
+.sms-card{background:var(--s2);border:1px solid var(--bdr);border-radius:7px;padding:11px 12px;margin-bottom:9px;font-size:13px;line-height:1.85;white-space:pre-line;color:var(--t);position:relative;}
+.sms-l{font-size:9.5px;font-weight:800;letter-spacing:.5px;color:var(--t3);text-transform:uppercase;margin-bottom:5px;}
+.copy-btn{position:absolute;top:9px;right:9px;padding:6px 11px;background:var(--Ps);color:var(--P);border:none;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-appearance:none;}
+.coll-hd{display:flex;align-items:center;gap:8px;width:100%;padding:11px 12px;background:var(--s2);border:1px solid var(--bdr);border-radius:7px;cursor:pointer;margin-bottom:8px;text-align:left;-webkit-appearance:none;}
+.ch-ic{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;color:#fff;}
+.ch-g{background:var(--A);}
+.ch-title{font-size:13.5px;font-weight:700;color:var(--P);flex:1;}
+.ch-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--Al);color:var(--A);flex-shrink:0;}
+.ch-arr{font-size:10px;color:var(--t3);flex-shrink:0;}
+.step-badge{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.sb-num{width:28px;height:28px;border-radius:50%;background:var(--P);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;}
+.sb-ttl{font-size:15px;font-weight:700;color:var(--P);}
+.sb-tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--Ps);color:var(--P);}
+.nav-row{display:flex;align-items:center;justify-content:space-between;padding-top:12px;gap:8px;}
+.nbtn{display:inline-flex;align-items:center;gap:5px;padding:0 18px;height:44px;border-radius:8px;font-family:'Noto Sans KR',sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;-webkit-appearance:none;}
+.nbtn.p{background:var(--P);color:#fff;}
+.nbtn.s{background:var(--s2);color:var(--t2);border:1.5px solid var(--bdr);}
+.nbtn.g{background:var(--G);color:#fff;}
+.nbtn.a{background:var(--A);color:#fff;}
+.step-ind{font-size:11.5px;color:var(--t3);font-weight:600;}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div class="h-logo">신</div>
+  <div class="h-info">
+    <div class="h-title">허브플러스 이관DB TA스크립트</div>
+    <div class="h-sub">Shinhan Life · <span id="hfc">이진규 FC</span></div>
+  </div>
+  <div class="h-right" id="hRight" style="display:none;">
+    <button type="button" class="h-chip" id="hc-cust"></button>
+    <button type="button" class="h-chip" id="hc-ins"></button>
+    <button type="button" class="h-chip type" id="hc-type"></button>
+    <button type="button" id="hReset">⚙</button>
+  </div>
+</div>
+
+<div id="shell">
+<div id="lnav">
+  <div id="lnavScroll">
+    <div class="lsec">
+      <div class="lsec-lbl">📋 진행 단계</div>
+      <button type="button" class="lbtn" id="ln0"><span class="lbtn-ic">1</span>인사·확인</button>
+      <button type="button" class="lbtn" id="ln1"><span class="lbtn-ic">2</span>건강확인</button>
+      <button type="button" class="lbtn" id="ln2"><span class="lbtn-ic">3</span>방문목적</button>
+      <button type="button" class="lbtn" id="ln3"><span class="lbtn-ic">4</span>약속잡기</button>
+      <button type="button" class="lbtn" id="ln4"><span class="lbtn-ic">5</span>마무리</button>
+      <button type="button" class="lbtn" id="ln5"><span class="lbtn-ic">✉</span>문자발송</button>
+      <button type="button" class="lbtn" id="ln6"><span class="lbtn-ic">🚫</span>금지표현</button>
+    </div>
+    <div class="lsec">
+      <div class="lsec-lbl">🛡 거절 응대</div>
+      <button type="button" class="lbtn rj" id="lrj-busy"><span class="lbtn-ic">!</span>바빠요</button>
+      <button type="button" class="lbtn rj" id="lrj-visit"><span class="lbtn-ic">!</span>방문 부담</button>
+      <button type="button" class="lbtn rj" id="lrj-ins"><span class="lbtn-ic">!</span>추가 거부</button>
+      <button type="button" class="lbtn rj" id="lrj-call"><span class="lbtn-ic">!</span>콜센터 이용</button>
+      <button type="button" class="lbtn rj" id="lrj-other"><span class="lbtn-ic">!</span>다른 설계사</button>
+      <button type="button" class="lbtn rj" id="lrj-later"><span class="lbtn-ic">!</span>나중에 연락</button>
+      <button type="button" class="lbtn rj" id="lrj-who"><span class="lbtn-ic">!</span>담당자 변경?</button>
+    </div>
+    <div class="lsec">
+      <div class="lsec-lbl">✅ 진행 체크</div>
+      <button type="button" class="ckbtn" id="ck0"><div class="ck-box">✓</div>상대방 확인</button>
+      <button type="button" class="ckbtn" id="ck1"><div class="ck-box">✓</div>주소 확인</button>
+      <button type="button" class="ckbtn" id="ck2"><div class="ck-box">✓</div>건강사항 확인</button>
+      <button type="button" class="ckbtn" id="ck3"><div class="ck-box">✓</div>날짜·장소 확정</button>
+      <button type="button" class="ckbtn" id="ck4"><div class="ck-box">✓</div>확인 문자 발송</button>
+    </div>
+  </div>
+</div>
+
+<div id="center">
+  <div id="cscroll">
+
+    <!-- SETUP -->
+    <div id="pageSetup">
+      <div class="setup-wrap">
+        <div class="setup-hero"><h1>🏦 허브플러스 이관DB TA스크립트</h1><p>고객 정보를 입력하면 모든 스크립트에 자동 반영됩니다</p></div>
+        <div class="scard">
+          <div class="scard-title">👤 상담 정보 입력</div>
+          <div class="fg">
+            <div class="f full"><label>FC 성명</label><input type="text" id="ifc" placeholder="이진규" value="이진규"></div>
+            <div class="f"><label>고객 성함</label><input type="text" id="icust" placeholder="김신한"></div>
+            <div class="f"><label>계약 보험명</label><input type="text" id="iins" placeholder="신한종신보험"></div>
+            <div class="f full"><label>고객 주소지</label><input type="text" id="iaddr" placeholder="역삼동, 강남구"></div>
+            <div class="f"><label>가입연도</label><input type="text" id="iyear" placeholder="2012년"></div>
+            <div class="f"><label>납입금액</label><input type="text" id="iamt" placeholder="2,400만원"></div>
+          </div>
+        </div>
+        <div class="scard">
+          <div class="scard-title">📋 상품 유형 선택</div>
+          <div class="type-grid">
+            <button type="button" class="tcbtn on" id="tc-default"><div class="tc-e">📄</div><div class="tc-l">기본(종신·CI)</div></button>
+            <button type="button" class="tcbtn" id="tc-renewal"><div class="tc-e">🔄</div><div class="tc-l">갱신형</div></button>
+            <button type="button" class="tcbtn" id="tc-paid"><div class="tc-e">✅</div><div class="tc-l">완납 계약</div></button>
+            <button type="button" class="tcbtn" id="tc-saving"><div class="tc-e">💰</div><div class="tc-l">저축보험</div></button>
+            <button type="button" class="tcbtn" id="tc-pension"><div class="tc-e">🏖️</div><div class="tc-l">연금보험</div></button>
+            <button type="button" class="tcbtn" id="tc-small"><div class="tc-e">🪙</div><div class="tc-l">소액보험</div></button>
+            <button type="button" class="tcbtn" id="tc-rider"><div class="tc-e">⚙️</div><div class="tc-l">갱신특약</div></button>
+            <button type="button" class="tcbtn" id="tc-loan"><div class="tc-e">🏦</div><div class="tc-l">약관대출</div></button>
+          </div>
+        </div>
+        <button type="button" class="btn-start" id="btnStart">📞 TA 시작하기 →</button>
+      </div>
+    </div>
+
+    <!-- STEP 0 -->
+    <div id="step0" style="display:none;">
+      <div class="step-badge"><div class="sb-num">1</div><div class="sb-ttl">인사 · 자기소개 · 확인</div><div class="sb-tag">STEP 1</div></div>
+      <div id="concept-block"></div>
+      <div class="sb"><div class="sb-l">🎙 도입 멘트</div>
+        안녕하세요, <span class="vr fv-cust"></span>님 맞으시죠?<br>
+        신한라이프에 <span class="vr fv-ins"></span> 유지 중이시잖아요, 그 계약 담당자 <span class="hl fv-fc"></span>입니다.<br>
+        고객님 유지 중이신 보험 관련하여 <span class="hl">중요한 안내사항</span>이 있어서 연락드렸구요,<br>
+        저희 쪽에 등록된 주소지가 <span class="vr fv-addr"></span>으로 되어 있는데, 주소는 그대로 맞으신가요?
+      </div>
+      <div class="branch">
+        <div class="bry"><div class="br-l">✔ 주소 일치</div>네, 확인 감사합니다.</div>
+        <div class="brn"><div class="br-l">✘ 주소 변경 시</div>변동된 주소 확인 부탁드립니다. 담당자 측 정보변경은 완료되었구요, 증권 정보변경은 녹취 후 가능해서 통화 종료 후 콜센터 번호와 방법을 안내 문자로 남겨드리겠습니다.</div>
+      </div>
+      <div class="sb gr" style="margin-top:10px;"><div class="sb-l">💡 요령</div>
+        <div class="trow"><span>✅</span>대표동·구·건물명만 언급 — 고객이 담당자임을 자연스럽게 인지</div>
+        <div class="trow"><span>✅</span>문장 사이 텀 없이 ("~이구요~") — 뚝 끊으면 신뢰 급하락</div>
+      </div>
+      <button type="button" class="coll-hd" id="collHd"><div class="ch-ic ch-g">✉</div><div class="ch-title">통화 전 사전 문자 (필요 시 열기)</div><span class="ch-tag">선택</span><span class="ch-arr" id="collArr">▼</span></button>
+      <div id="collBody" style="display:none;margin-bottom:10px;">
+        <div class="sms-card"><div class="sms-l">사전 안내 문자</div><button type="button" class="copy-btn" id="cp0">복사</button><span class="fv-cust"></span> 고객님 안녕하세요.
+신한라이프 장기우수고객 따뜻한행복서비스 대상으로 확정되어 연락드립니다.
+1:1 담당자가 곧 연락드릴 예정입니다. 감사합니다.</div>
+        <div class="sms-card"><div class="sms-l">VIP 이관 사전 문자</div><button type="button" class="copy-btn" id="cp1">복사</button><span class="fv-cust"></span> 고객님, 안녕하세요.
+신한라이프(구 신한생명) VIP이관팀 <span class="fv-fc"></span>입니다.
+계약건 관련 반드시 안내드릴 사항이 있어 연락드릴 예정입니다.
+(광고·스팸 아니므로 안심하셔도 됩니다.)</div>
+        <div class="sms-card"><div class="sms-l">부재 중 문자</div><button type="button" class="copy-btn" id="cp2">복사</button><span class="fv-cust"></span>님 안녕하세요.
+신한라이프 담당자 <span class="fv-fc"></span>입니다.
+장기우수고객님께 중요한 안내사항이 있어 연락드렸습니다.
+편하신 시간 알려주시면 다시 연락드리겠습니다.</div>
+      </div>
+      <div class="nav-row"><div></div><span class="step-ind">1 / 5</span><button type="button" class="nbtn p" id="n0next">다음 →</button></div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div id="step1" style="display:none;">
+      <div class="step-badge"><div class="sb-num">2</div><div class="sb-ttl">건강사항 확인</div><div class="sb-tag">STEP 2 · 1차 언더라이팅</div></div>
+      <div class="sb"><div class="sb-l">🎙 건강 확인 멘트</div>
+        고객님께서 <span class="vr fv-ins"></span> 가입하실 당시에 건강사항 꼼꼼히 고지하고 가입하셨을 텐데요,<br>
+        가입 이후로 최근 병원을 다녀오셨다거나 <span class="hl">드시고 있는 약</span>이 있으시거나,<br>
+        입원 또는 수술 하신 적 있으신가요? 현재 치료 중이신 곳은요?
+      </div>
+      <div class="sb go"><div class="sb-l">💊 약 복용 확인 시</div>
+        약은 언제부터 드셨나요? 같이 복용하시는 약은 없으세요?<br>
+        <span style="font-size:12.5px;color:var(--t3)">→ 혈압약·고지혈증·당뇨·간 관련 약명까지, 수술은 시기·완치 여부까지</span>
+      </div>
+      <div class="branch">
+        <div class="bry"><div class="br-l">✔ 이상 없음</div>그동안 건강에 이상이 없으셨다니 다행입니다! 그럼 본론으로 넘어가서 안내드리겠습니다.</div>
+        <div class="brn"><div class="br-l">▶ 병력 있음</div>네, 청구 가능한 보험금이 있는지 확인 도와드려 보겠습니다.<br><span style="font-size:12px;color:var(--R)">→ 가족보장 점검 컨셉으로 전환</span></div>
+      </div>
+      <div class="nav-row"><button type="button" class="nbtn s" id="n1prev">← 이전</button><span class="step-ind">2 / 5</span><button type="button" class="nbtn p" id="n1next">다음 →</button></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="step2" style="display:none;">
+      <div class="step-badge"><div class="sb-num">3</div><div class="sb-ttl">방문 목적 안내</div><div class="sb-tag">STEP 3</div></div>
+      <div class="sb"><div class="sb-l">🎙 방문 필요성 안내</div>
+        고객님께서 <span class="vr fv-year"></span>에 가입하신 이후로 <span class="hl">장기 유지</span>해 주셔서 정말 감사드리구요,<br>
+        저희 회사에서 장기우수고객님들께 <span class="hl">고객관리 전담부서</span>를 배정해 드리고 있어서 제가 담당자로 배정되었습니다.<br><br>
+        관리 이력이 꽤 오래 없으시다 보니 보장 상태 점검과 궁금하셨던 사항 해소해 드리려고 하는데요—<br>
+        놓치고 가시는 보험금이나 환급금 있으신 분들이 뒤늦게 알고 불만접수 하시는 경우가 많아서 진행하고 있습니다.<br><br>
+        점검 후에는 <span class="hl">모든 보험을 한눈에 정리</span>해 드리니, 나중에 급하실 때에도 어디에 뭐가 있더라 하실 일이 없어지실 거예요.
+      </div>
+      <div class="sb go"><div class="sb-l">✨ 추가 어필</div>
+        갱신특약 인상 / 만기 도래 / 연금개시 예상액 / 해약환급금 / 마지막 청구일 / 기간 내 청구 가능 보험금<br>
+        → <span class="hl">고객에게 이익이 되는 내용</span> 중심으로 강조
+      </div>
+      <div class="sb gr"><div class="sb-l">💡 어조 포인트</div>
+        <div class="trow"><span>✅</span>"보장점검" 피하기 → "추가혜택·점검서비스"로 표현</div>
+        <div class="trow"><span>✅</span>신상품 권유 냄새 절대 풍기지 않도록</div>
+        <div class="trow"><span>⏱</span>소요 시간: 약 30분</div>
+      </div>
+      <div class="nav-row"><button type="button" class="nbtn s" id="n2prev">← 이전</button><span class="step-ind">3 / 5</span><button type="button" class="nbtn p" id="n2next">다음 →</button></div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="step3" style="display:none;">
+      <div class="step-badge"><div class="sb-num">4</div><div class="sb-ttl">방문 약속 잡기</div><div class="sb-tag">STEP 4 · FC 주도</div></div>
+      <div class="sb"><div class="sb-l">🎙 약속 제안</div>
+        방문 안내는 자택 근처가 편하시죠?<br>
+        제가 고객님 계신 <span class="vr fv-addr"></span> 쪽은 <span class="vr">이번 주 수요일</span>에 방문 예정인데요,<br>
+        <span class="hl">수요일 오후 2시 괜찮으시죠?</span>
+      </div>
+      <div class="branch">
+        <div class="bry"><div class="br-l">✔ 직장인 경우</div>지금 직장 다니고 계시죠? 직장 주소 확인 부탁드립니다.<br>점심시간 많이 하시는데, <span class="vr">[요일]</span> 점심시간 괜찮으시죠?</div>
+        <div class="brn"><div class="br-l">✘ 평일 전부 불가</div>원칙적으로 토요 근무는 안 하는데요— 이번 주 토요일 가능하시면 당직 승인 받아서 맞추겠습니다.</div>
+      </div>
+      <div class="sb wa" style="margin-top:10px;"><div class="sb-l">⚠ 핵심 원칙</div>
+        <div class="trow"><span>🚫</span><strong>"언제 편하세요?"</strong> — 절대 금지 (개방형 질문)</div>
+        <div class="trow"><span>✅</span>FC가 날짜·시간을 먼저 제시 → 동의만 구하는 방식</div>
+        <div class="trow"><span>✅</span>약속 확정 즉시 확인 문자 발송</div>
+      </div>
+      <div class="nav-row"><button type="button" class="nbtn s" id="n3prev">← 이전</button><span class="step-ind">4 / 5</span><button type="button" class="nbtn p" id="n3next">다음 →</button></div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div id="step4" style="display:none;">
+      <div class="step-badge"><div class="sb-num">5</div><div class="sb-ttl">마무리 안내</div><div class="sb-tag">STEP 5</div></div>
+      <div class="sb"><div class="sb-l">🎙 타사 종합 리포트 안내</div>
+        마지막으로, <span class="hl">가입 중인 타사 보험들까지 종합해서 리포트</span>로 작성해 드리고 있습니다.<br>
+        어디서 어떤 금액을 받으실 수 있는지 모르고 지나치시는 경우가 많아서 찾아서 알려드릴 거구요,<br>
+        해당 서비스는 <span class="hl">알림톡으로 발송</span>해 드릴 테니 꼭 확인하시고 동의 부탁드립니다.
+      </div>
+      <div class="sb go" style="margin-top:8px;"><div class="sb-l">🎙 약속 확정 & 마무리 인사</div>
+        방문 승인 올려놓을 거구요, <span class="vr">[날짜·요일·시간]</span>에 찾아뵙겠습니다.<br>
+        명함과 약속 일정 함께 톡으로 발송해 드리오니 꼭 확인하시고 동의 부탁드립니다.<br><br>
+        그 외 보험에 대해 문의가 있으시면 언제든 연락 주시면 됩니다.<br>
+        <span class="hl">담당자 신한라이프 <span class="fv-fc"></span>였습니다, 감사합니다!</span>
+      </div>
+      <div class="sb gr"><div class="sb-l">💡 마무리 다지기</div>
+        <div class="trow"><span>✅</span>날짜·시간·장소 3가지 재확인</div>
+        <div class="trow"><span>✅</span>확인 문자 즉시 발송 / 타사보험 알림톡 동의 확보</div>
+      </div>
+      <div class="nav-row"><button type="button" class="nbtn s" id="n4prev">← 이전</button><span class="step-ind">5 / 5</span><button type="button" class="nbtn g" id="n4next">✉ 문자 발송</button></div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div id="step5" style="display:none;">
+      <div class="step-badge"><div class="sb-num" style="background:var(--A)">✉</div><div class="sb-ttl">문자 템플릿 모음</div></div>
+      <div class="sms-card"><div class="sms-l">✅ 약속 확정 문자</div><button type="button" class="copy-btn" id="cp3">복사</button><span class="fv-cust"></span> 고객님
+신한라이프 따뜻한행복서비스 방문 예약이 확정되었습니다.
+
+📅 일 정 : [날짜] ([요일]) [시간]
+📍 장 소 : [자택/직장]
+👤 담 당 : <span class="fv-fc"></span>
+📞 연락처 : [전화번호]
+
+보장내용 등 꼼꼼히 준비하여 방문드리겠습니다.
+신한라이프 <span class="fv-fc"></span></div>
+      <div class="sms-card"><div class="sms-l">❌ 약속 실패 문자</div><button type="button" class="copy-btn" id="cp4">복사</button><span class="fv-cust"></span> 고객님
+신한라이프 따뜻한행복서비스를 2차 대상으로 변경하겠습니다.
+일정 가능하실 때 연락 주시면 스케줄 변경 도와드리겠습니다.
+- 신한라이프 <span class="fv-fc"></span> -</div>
+      <div class="sms-card"><div class="sms-l">📵 부재 중 (재연락)</div><button type="button" class="copy-btn" id="cp5">복사</button><span class="fv-cust"></span>님 안녕하세요.
+신한라이프 고객관리부서 <span class="fv-fc"></span>입니다.
+여러 번 전화드렸는데 연결이 안 되네요. 연락 부탁드립니다.</div>
+      <div class="nav-row"><button type="button" class="nbtn s" id="n5prev">← 마무리로</button><div></div><button type="button" class="nbtn a" id="n5next">🚫 금지 표현</button></div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div id="step6" style="display:none;">
+      <div class="step-badge"><div class="sb-num" style="background:var(--W)">🚫</div><div class="sb-ttl">금지 표현 & 발화 품질</div><div class="sb-tag" style="background:var(--Wl);color:var(--W)">숙지 필수</div></div>
+      <div class="no-list">
+        <div class="no-item">솔직히 말씀드려서...</div><div class="no-item">방문드리면 안 될까요?</div>
+        <div class="no-item">차나 한잔 주시면...</div><div class="no-item">얼굴도 보여드리고...</div>
+        <div class="no-item">좋은 상품이 나와서...</div><div class="no-item">바쁘신 거에요?</div>
+        <div class="no-item">통화 힘드신 거에요?</div><div class="no-item">보장분석 해드리고 싶은데...</div>
+        <div class="no-item">선물드리러 가야 되는데...</div><div class="no-item">언제 편하세요? (개방형)</div>
+      </div>
+      <div class="sb wa" style="margin-top:12px;"><div class="sb-l">📣 발화 품질 체크</div>
+        <div class="trow"><span>🎯</span>속도 약간 빠르게, 억양·어투로 신뢰감 형성</div>
+        <div class="trow"><span>🎯</span>문장 사이 텀 없이 ("~이구요~")</div>
+        <div class="trow"><span>🎯</span>습관 어미 제거 (어, 아, 그, 저) → 녹음 청취</div>
+        <div class="trow"><span>🎯</span>운전 중 고객 → "스피커폰 전환 후 들어주세요"</div>
+        <div class="trow"><span>🎯</span>거절은 당연 — 경청 1회 후 바로 내 멘트로 이어가기</div>
+        <div class="trow"><span>🎯</span>적어도 3번 거절 처리 / 완강하면 2차 등록</div>
+      </div>
+      <div class="nav-row"><button type="button" class="nbtn s" id="n6prev">← 문자템플릿</button><div></div><button type="button" class="nbtn p" id="n6reset">↩ 처음으로</button></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="rpanel">
+  <div class="rp-hdr"><div class="rp-ic">🛡</div><div class="rp-title">거절 응대</div><span style="font-size:10px;color:rgba(255,255,255,.55);">탭 → 스크립트</span></div>
+  <div id="rpScroll">
+    <button type="button" class="rjbtn" id="rjb-busy"><div class="rjbtn-ic">😤</div>바빠요 / 관심없어요</button>
+    <div class="rpane" id="rp-busy" style="display:none;">
+      <div class="rs"><div class="rs-l">1차</div>바쁘시겠지만 워낙에 전화 연결이 안 되셔서, <strong>중요사항 몇 가지만 확인하고 통화 종료</strong>해 드릴 건데요— 연결되셨을 때 변경사항 있으신지 몇 가지만 확인해 드릴게요.</div>
+      <div class="rs fo"><div class="rs-l">2차</div>아무한테나 해드리는 게 아니고 <strong>고객님처럼 장기유지 고객님들께만</strong> 진행해 드리는 거라 받아 보신 분들 굉장히 만족해 하셨거든요.</div>
+      <div class="rs la"><div class="rs-l">완강 시</div>네 알겠습니다. 톡으로 명함과 안내사항 남겨드리고, 다음에 다시 통화드리겠습니다. 건강하시고 좋은 하루 되세요!</div>
+    </div>
+    <button type="button" class="rjbtn" id="rjb-visit"><div class="rjbtn-ic">🚪</div>방문이 부담스러워요</button>
+    <div class="rpane" id="rp-visit" style="display:none;">
+      <div class="rs"><div class="rs-l">1차</div><strong>고객님이 내방하시는 게 아니라 제가 계신 곳으로 찾아뵙는 거</strong>라 부담 가지지 않으셔도 됩니다. 장기유지 고객님들께만 진행해 드리는 서비스예요.</div>
+      <div class="rs fo"><div class="rs-l">2차 — 납입액 강조</div>총 납입액 <span class="vr fv-amt"></span>의 고액 계약에 대한 관리이고, 고객님 편한 시간·편한 장소로 방문하오니 <strong>콜센터보다 빠른 개인 창구</strong> 만드셨다고 생각하시면 좋습니다.</div>
+      <div class="rs la"><div class="rs-l">3차 — 담당자 변경 경고</div>대면 담당자 배정을 확정하지 않으면 <strong>다른 담당자로 변경되어 똑같은 전화를 또 받게 되셔서</strong> 번거로우십니다. 번거롭지 않도록 제가 찾아뵙고 설명드리겠습니다.</div>
+    </div>
+    <button type="button" class="rjbtn" id="rjb-ins"><div class="rjbtn-ic">🙅</div>보험 더 이상 안 해요</button>
+    <div class="rpane" id="rp-ins" style="display:none;">
+      <div class="rs"><div class="rs-l">응대</div>기존 보장내용 브리핑해 드리는 거구요, <strong>하고 안 하고는 전적으로 고객님 선택</strong>이세요. 추가 가입 권유가 아니라 현재 보험이 제대로 작동하는지 확인해 드리러 가는 겁니다.</div>
+      <div class="rs fo"><div class="rs-l">타사 보험 많은 경우</div>여러 건 준비되어 있기 때문에 <strong>종합 보장 점검</strong> 받으시면 오히려 더 좋으실 거예요. 분석받으신 고객님들이 더 만족하셨거든요.</div>
+    </div>
+    <button type="button" class="rjbtn" id="rjb-call"><div class="rjbtn-ic">📞</div>콜센터 이용할게요</button>
+    <div class="rpane" id="rp-call" style="display:none;">
+      <div class="rs"><div class="rs-l">응대</div>순환근무로 <strong>통화 연결이 많이 힘들다</strong>는 고객님 불만이 많으세요. 1:1 담당자가 아니다 보니 고객님이 만족하시는 상담이 어렵고, 결국 저한테 다시 연락 오시더라고요.</div>
+    </div>
+    <button type="button" class="rjbtn" id="rjb-other"><div class="rjbtn-ic">👤</div>다른 설계사 있어요</button>
+    <div class="rpane" id="rp-other" style="display:none;">
+      <div class="rs"><div class="rs-l">응대</div>병원도 과마다 전문 의사 선생님이 계시듯, <strong>신한라이프 보험은 담당자인 제게 맡겨두시면</strong> 더욱 전문적으로 관리받으실 수 있으세요. 다른 보험사 분이 신한라이프 계약 내용을 세세히 파악하시기는 어려우니까요.</div>
+    </div>
+    <button type="button" class="rjbtn" id="rjb-later"><div class="rjbtn-ic">⏳</div>필요할 때 연락할게요</button>
+    <div class="rpane" id="rp-later" style="display:none;">
+      <div class="rs"><div class="rs-l">응대</div>물론 그렇게 하실 수도 있으세요. 하지만 보험이라는 것이 <strong>평상시엔 필요성을 못 느끼다가 막상 사고가 나면 제일 먼저 생각</strong> 나시게 됩니다. 제가 요약해서 설명드려 놓으면 당황스러운 순간에 엄청나게 도움 되십니다.</div>
+    </div>
+    <button type="button" class="rjbtn" id="rjb-who"><div class="rjbtn-ic">❓</div>담당자가 바뀐 거예요?</button>
+    <div class="rpane" id="rp-who" style="display:none;">
+      <div class="rs"><div class="rs-l">개인 번호 이유</div>외근 업무가 많아서 사무실 부재 시가 많거든요. <strong>빠른 연결을 위해 개인 연락처로 드린 거니</strong> 저장해 놓으시면 앞으로 편하게 연락 주세요.</div>
+      <div class="rs fo"><div class="rs-l">진위 확인 요청 시</div>신한라이프 앱에서 담당자 확인 가능하시구요, <strong>대표번호 1588-5580</strong>으로도 확인하실 수 있습니다.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+var D={fc:'이진규FC',cust:'',ins:'',addr:'',year:'',amt:'',type:'default'};
+var TYPE_NAMES={default:'기본(종신·CI)',renewal:'갱신형',paid:'완납 계약',saving:'저축보험',pension:'연금보험',small:'소액보험',rider:'갱신특약',loan:'약관대출'};
+var CONCEPTS={
+  default:null,
+  renewal:'<div class="pt-badge">🔄 갱신형 컨셉</div><div class="sb go"><div class="sb-l">🎙 갱신형 특화 도입</div>고객님, 저희 쪽에 <span class="fv-ins"></span> 납입 중이시잖아요?<br>이 보험이 저렴하긴 한데 <span class="hl">10년마다 갱신이 되어 계속 보험료가 인상</span>되어요. 은퇴 후에도 계속 납입하셔야 하는 부담이 생기시거든요.<br><span class="fv-year"></span> 가입하셨으니 이미 절반 이상 지나셨는데— <span class="hl">앞으로는 보험료가 한 번도 오르지 않고 쭉 같은 금액으로 보장받으실 수 있도록</span> 혜택을 드리려고 찾아뵙고자 합니다.</div>',
+  paid:'<div class="pt-badge">✅ 완납 컨셉</div><div class="sb go"><div class="sb-l">🎙 완납 특화 도입</div>고객님, 납입은 이미 끝나시고 <span class="hl">보장만 받고 계신데요</span>— 정말 대단하세요!<br>완납되신 분들은 보험료가 빠지지 않다 보니 <span class="hl">보험이 있다는 걸 잊고 계시는 경우</span>가 많아서, 놓치고 가는 보험금이 많으시다고 불만접수가 많이 되더라고요.<br>이번에 완납 고객님들만 따로 찾아뵙고 <span class="hl">통합 보장점검 서비스 혜택</span>을 드리려고 연락드렸습니다.</div>',
+  saving:'<div class="pt-badge">💰 저축보험 컨셉</div><div class="sb go"><div class="sb-l">🎙 저축 특화 도입</div>고객님, 저희 쪽에 <span class="fv-ins"></span> 가입하고 계시잖아요. 혹시 현재 <span class="hl">적용 금리가 몇 % 인지</span> 알고 계세요?<br>가입하신 상품이 <span class="hl">미래 수익률이 중요한 저축 상품</span>이잖아요. 담당자가 찾아뵙고 중간 수익률 점검해 드리고, 10년 시점 해지환급금 및 <span class="hl">중도인출·활용 방법</span>도 함께 안내드리려고 합니다.</div>',
+  pension:'<div class="pt-badge">🏖️ 연금보험 컨셉</div><div class="sb go"><div class="sb-l">🎙 연금 특화 도입</div>고객님, 노후에 연금자산 준비를 잘 해두셨는데요— <span class="hl">연금 예상액 리뷰 서비스</span>를 한 번도 못 받으셨죠?<br>1:1 담당자가 방문해서 향후 <span class="hl">연금 예상액</span>을 정확하게 안내드리려고 하는데요. 연금은 중간 점검을 꼭 받으셔야 <span class="hl">노후 계획을 더 구체적으로 세우실 수 있어서</span> 찾아뵙고자 합니다.</div>',
+  small:'<div class="pt-badge">🪙 소액보험 컨셉</div><div class="sb go"><div class="sb-l">🎙 소액 특화 도입</div>고객님, 월 보험료는 소액이지만 총 납입 기간으로 보면 <span class="fv-amt"></span> 정도 되세요.<br>소액이다 보니 별다른 보장이 없다고 생각하시고 <span class="hl">보험금 놓치고 가시는 경우</span>가 많더라고요.<br>이번에 통합 기념으로 담당자 인사도 드리고 <span class="hl">보장 리뷰 서비스 혜택</span>을 드리려고 찾아뵙고자 합니다.</div>',
+  rider:'<div class="pt-badge">⚙️ 갱신특약 컨셉</div><div class="sb go"><div class="sb-l">🎙 갱신특약 특화 도입</div>고객님, 저희 쪽에 <span class="fv-ins"></span>에 특약으로 보장 부분을 많이 설정하셨는데요— 일부 <span class="hl">갱신형으로 연결해 놓으신 특약</span>이 있으시거든요.<br>이번에 <span class="hl">보험료 인상폭과 보장 내용에 대해 점검 서비스</span>를 해드려야 하는데요— 설명받으셨다고 <span class="hl">확인 절차</span>가 있어서 방문 서비스로 진행해야 합니다.</div>',
+  loan:'<div class="pt-badge">🏦 약관대출 컨셉</div><div class="sb go"><div class="sb-l">🎙 약관대출 특화 도입</div>고객님, 저희 쪽 <span class="fv-ins"></span>에서 <span class="hl">자금을 활용하고 계신 것</span>이 있으시잖아요?<br>이번에 자금 활용하시는 분들 대상으로 <span class="hl">정비 서비스</span>를 진행해 드려야 하는데요— 시중 금리 대비 <span class="hl">고객님께 적용되는 이율</span>에 대해 설명드리고, 잔여자금 및 정확한 현황을 안내해 드려야 해서요. 해당되신 분들 모두 만족해 하셨거든요.</div>'
+};
+
+/* ── 화면 전환: classList 대신 style.display 직접 제어 ── */
+var PAGES = ['pageSetup','step0','step1','step2','step3','step4','step5','step6'];
+
+function showOnly(id) {
+  for (var i = 0; i < PAGES.length; i++) {
+    var el = document.getElementById(PAGES[i]);
+    if (el) el.style.display = (PAGES[i] === id) ? 'block' : 'none';
+  }
+  document.getElementById('cscroll').scrollTop = 0;
+}
+
+function fill() {
+  var m = {'fv-fc':D.fc,'fv-cust':D.cust,'fv-ins':D.ins,'fv-addr':D.addr,'fv-year':D.year,'fv-amt':D.amt};
+  for (var cls in m) {
+    var els = document.querySelectorAll('.' + cls);
+    for (var i = 0; i < els.length; i++) els[i].textContent = m[cls];
+  }
+}
+
+function setNavActive(n) {
+  for (var i = 0; i <= 6; i++) {
+    var el = document.getElementById('ln' + i);
+    if (el) el.className = 'lbtn' + (i === n ? ' on' : '');
+  }
+}
+
+function goStep(n) {
+  showOnly('step' + n);
+  setNavActive(n);
+  fill();
+}
+
+function goSetup() {
+  showOnly('pageSetup');
+  setNavActive(-1);
+  document.getElementById('hRight').style.display = 'none';
+}
+
+function startTA() {
+  D.fc   = document.getElementById('ifc').value   || '이진규FC';
+  D.cust = document.getElementById('icust').value  || '고객님';
+  D.ins  = document.getElementById('iins').value   || '보험';
+  D.addr = document.getElementById('iaddr').value  || '주소지';
+  D.year = document.getElementById('iyear').value  || '가입연도';
+  D.amt  = document.getElementById('iamt').value   || '납입금액';
+  var sel = document.querySelector('.tcbtn.on');
+  D.type = sel ? sel.id.replace('tc-','') : 'default';
+
+  document.getElementById('hfc').textContent = D.fc;
+  document.getElementById('hc-cust').textContent = '👤 ' + D.cust + '님';
+  document.getElementById('hc-ins').textContent  = '📄 ' + D.ins;
+  document.getElementById('hc-type').textContent = TYPE_NAMES[D.type] || D.type;
+  document.getElementById('hRight').style.display = 'flex';
+
+  document.getElementById('concept-block').innerHTML = CONCEPTS[D.type] || '';
+  fill();
+  goStep(0);
+}
+
+/* 거절 응대 */
+var RJ_TYPES = ['busy','visit','ins','call','other','later','who'];
+function openRej(type) {
+  for (var i = 0; i < RJ_TYPES.length; i++) {
+    var t = RJ_TYPES[i];
+    var pane = document.getElementById('rp-' + t);
+    var btn  = document.getElementById('rjb-' + t);
+    var lbtn = document.getElementById('lrj-' + t);
+    var show = (t === type) && (pane.style.display === 'none');
+    if (pane) pane.style.display = show ? 'block' : 'none';
+    if (btn)  btn.className = 'rjbtn' + (show ? ' on' : '');
+    if (lbtn) lbtn.className = 'lbtn rj' + (show ? ' on' : '');
+  }
+  fill();
+  var p = document.getElementById('rp-' + type);
+  if (p && p.style.display === 'block') {
+    setTimeout(function(){ p.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 50);
+  }
+}
+
+/* 접이식 */
+var collOpen = false;
+function toggleColl() {
+  collOpen = !collOpen;
+  document.getElementById('collBody').style.display = collOpen ? 'block' : 'none';
+  document.getElementById('collArr').textContent = collOpen ? '▲' : '▼';
+}
+
+/* SMS 복사 */
+function copySms(btnId) {
+  var btn  = document.getElementById(btnId);
+  var card = btn.parentNode;
+  var clone = card.cloneNode(true);
+  var removes = clone.querySelectorAll('.sms-l,.copy-btn');
+  for (var i = 0; i < removes.length; i++) removes[i].parentNode.removeChild(removes[i]);
+  var t = clone.innerText.trim();
+  function done() { btn.textContent = '✓ 복사됨'; setTimeout(function(){ btn.textContent = '복사'; }, 2000); }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(t).then(done).catch(function() { fallback(t); done(); });
+  } else { fallback(t); done(); }
+  function fallback(s) {
+    var ta = document.createElement('textarea');
+    ta.value = s; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+}
+
+/* 타입 선택 */
+function selType(id) {
+  var btns = document.querySelectorAll('.tcbtn');
+  for (var i = 0; i < btns.length; i++) btns[i].className = 'tcbtn';
+  document.getElementById(id).className = 'tcbtn on';
+}
+
+/* ── 이벤트 바인딩: 모두 getElementById + addEventListener ── */
+function on(id, fn) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('click', fn);
+}
+
+on('btnStart', startTA);
+on('hc-cust',  goSetup);
+on('hc-ins',   goSetup);
+on('hc-type',  goSetup);
+on('hReset',   goSetup);
+on('collHd',   toggleColl);
+
+on('ln0', function(){ goStep(0); });
+on('ln1', function(){ goStep(1); });
+on('ln2', function(){ goStep(2); });
+on('ln3', function(){ goStep(3); });
+on('ln4', function(){ goStep(4); });
+on('ln5', function(){ goStep(5); });
+on('ln6', function(){ goStep(6); });
+
+on('lrj-busy',  function(){ openRej('busy');  });
+on('lrj-visit', function(){ openRej('visit'); });
+on('lrj-ins',   function(){ openRej('ins');   });
+on('lrj-call',  function(){ openRej('call');  });
+on('lrj-other', function(){ openRej('other'); });
+on('lrj-later', function(){ openRej('later'); });
+on('lrj-who',   function(){ openRej('who');   });
+
+on('rjb-busy',  function(){ openRej('busy');  });
+on('rjb-visit', function(){ openRej('visit'); });
+on('rjb-ins',   function(){ openRej('ins');   });
+on('rjb-call',  function(){ openRej('call');  });
+on('rjb-other', function(){ openRej('other'); });
+on('rjb-later', function(){ openRej('later'); });
+on('rjb-who',   function(){ openRej('who');   });
+
+on('ck0', function(){ var e=document.getElementById('ck0'); e.className=e.className==='ckbtn'?'ckbtn on':'ckbtn'; });
+on('ck1', function(){ var e=document.getElementById('ck1'); e.className=e.className==='ckbtn'?'ckbtn on':'ckbtn'; });
+on('ck2', function(){ var e=document.getElementById('ck2'); e.className=e.className==='ckbtn'?'ckbtn on':'ckbtn'; });
+on('ck3', function(){ var e=document.getElementById('ck3'); e.className=e.className==='ckbtn'?'ckbtn on':'ckbtn'; });
+on('ck4', function(){ var e=document.getElementById('ck4'); e.className=e.className==='ckbtn'?'ckbtn on':'ckbtn'; });
+
+on('tc-default', function(){ selType('tc-default'); });
+on('tc-renewal', function(){ selType('tc-renewal'); });
+on('tc-paid',    function(){ selType('tc-paid');    });
+on('tc-saving',  function(){ selType('tc-saving');  });
+on('tc-pension', function(){ selType('tc-pension'); });
+on('tc-small',   function(){ selType('tc-small');   });
+on('tc-rider',   function(){ selType('tc-rider');   });
+on('tc-loan',    function(){ selType('tc-loan');    });
+
+on('n0next', function(){ goStep(1); });
+on('n1prev', function(){ goStep(0); });
+on('n1next', function(){ goStep(2); });
+on('n2prev', function(){ goStep(1); });
+on('n2next', function(){ goStep(3); });
+on('n3prev', function(){ goStep(2); });
+on('n3next', function(){ goStep(4); });
+on('n4prev', function(){ goStep(3); });
+on('n4next', function(){ goStep(5); });
+on('n5prev', function(){ goStep(4); });
+on('n5next', function(){ goStep(6); });
+on('n6prev', function(){ goStep(5); });
+on('n6reset',function(){ goStep(0); });
+
+on('cp0', function(){ copySms('cp0'); });
+on('cp1', function(){ copySms('cp1'); });
+on('cp2', function(){ copySms('cp2'); });
+on('cp3', function(){ copySms('cp3'); });
+on('cp4', function(){ copySms('cp4'); });
+on('cp5', function(){ copySms('cp5'); });
+</script>
+</body>
+</html>
